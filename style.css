@@ -39,3 +39,34 @@ button:hover{
     border:1px solid #007aff;
     box-shadow: 0 0 5px rgba(142, 177, 245, 0.5);
 }
+
+.result {
+    background-color: #3a3a3c;
+    padding :15px;
+    border-radius:5px;
+    margin-top:15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.item_title{
+    margin: 0;
+}
+
+.add-btn{
+    background-color: #34c759;
+    border:none;
+    padding: 8px 12px;
+    border-radius:5px;
+    color:#fff;
+    cursor: pointer;
+}
+
+.add-btn:hover{
+    background-color: #2b9d48;
+}
+.added-btn{
+    background-color: #5e5e5e;
+    cursor: default;
+}
