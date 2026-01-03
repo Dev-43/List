@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-top: 40px;">
+    <!-- Header / Add Category -->
+    <div class="glass-card" style="display: flex; justify-content: space-between; align-items: center; padding: 20px;">
+        <h2 style="margin: 0;">My Wishlists</h2>
+        <form action="{{ url_for('main.add_category') }}" method="POST" style="display: flex; gap: 10px;">
+            <input type="text" name="name" placeholder="New Category..." required style="width: 200px;">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i></button>
+        </form>
+    </div>
+
+    <!-- Categories Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        {% for category in categories %}
+        <div class="glass-card">
+            <div class="category-header">
+                <h3>{{ category.name }}</h3>
+                <a href="{{ url_for('main.delete_category', category_id=category.id) }}" class="action-btn delete-btn" onclick="return confirm('Delete this category?');">
+                    <i class="fas fa-trash"></i>
+                </a>
+            </div>
+
+            <!-- Add Item Form (Smart Search) -->
+            <form action="{{ url_for('main.add_item', category_id=category.id) }}" method="POST" style="margin-bottom: 20px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" name="name" placeholder="Paste URL or Search Item..." required>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-magic"></i></button>
+                </div>
+                <div style="font-size: 0.7rem; opacity: 0.5; margin-top: 5px; margin-left: 5px;">
+                    <i class="fas fa-info-circle"></i> Auto-fetches title, image & description
+                </div>
+            </form>
+
+            <ul class="item-list">
+                {% for item in category.items %}
+                <li class="item icon-item" style="padding-left: 10px;">
+                    <div style="display: flex; align-items: center; gap: 15px; overflow: hidden; width: 100%;">
+                        
+                        <!-- Thumbnail -->
+                        <div style="width: 50px; height: 50px; border-radius: 8px; background: rgba(255,255,255,0.1); overflow: hidden; flex-shrink: 0;">
+                            {% if item.image_url %}
+                                <img src="{{ item.image_url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                                <div style="display: flex; align-items: center; justify-content: center; height: 100%;">
+                                    <i class="fas fa-cube" style="opacity: 0.3;"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div style="flex: 1; min-width: 0;">
+                            <div class="item-status-{{ item.status }}" style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <a href="{{ url_for('main.view_item', item_id=item.id) }}" style="color: inherit; text-decoration: none;">
+                                    {{ item.name }}
+                                </a>
+                            </div>
+                            <div style="font-size: 0.8rem; opacity: 0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px;">
+                                {% if item.link %}<i class="fas fa-link" style="font-size: 0.7rem;"></i>{% endif %}
+                                <a href="{{ url_for('main.view_item', item_id=item.id) }}" style="color: inherit; text-decoration: none;">View Details</a>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 5px;">
+                            <a href="{{ url_for('main.toggle_item', item_id=item.id) }}" class="action-btn" style="color: {{ '#2ecc71' if item.status == 'Completed' else 'rgba(255,255,255,0.3)' }}">
+                                <i class="fas fa-check"></i>
+                            </a>
+                            <a href="{{ url_for('main.delete_item', item_id=item.id) }}" class="action-btn delete-btn">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not categories %}
+    <div style="text-align: center; margin-top: 50px; opacity: 0.5;">
+        <i class="fas fa-ghost" style="font-size: 3rem; margin-bottom: 20px;"></i>
+        <p>No wishlists yet. Create one above!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

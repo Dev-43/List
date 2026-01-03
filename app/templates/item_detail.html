@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="glass-card" style="margin-top: 40px; padding: 40px;">
+    
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('main.index') }}" class="btn list-btn" style="display: inline-flex; align-items: center; gap: 10px;">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+        
+        <!-- Image Section -->
+        {% if item.image_url %}
+        <div style="flex: 1; min-width: 300px;">
+            <img src="{{ item.image_url }}" alt="{{ item.name }}" style="width: 100%; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+        </div>
+        {% else %}
+        <div style="flex: 1; min-width: 300px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border-radius: 16px; min-height: 300px;">
+            <i class="fas fa-image" style="font-size: 4rem; opacity: 0.3;"></i>
+        </div>
+        {% endif %}
+
+        <!-- Info Section -->
+        <div style="flex: 2; min-width: 300px;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 20px; color: white;">{{ item.name }}</h1>
+            
+            <div style="margin-bottom: 20px;">
+                <span class="item-status-{{ item.status }}" style="padding: 5px 15px; border-radius: 20px; background: rgba(255,255,255,0.1);">
+                    {{ item.status }}
+                </span>
+                <span style="margin-left: 10px; opacity: 0.6; font-size: 0.9rem;">
+                    Added on {{ item.date_added.strftime('%Y-%m-%d') }}
+                </span>
+            </div>
+
+            {% if item.info %}
+            <div style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+                <h3 style="margin-bottom: 10px; opacity: 0.8;">Description</h3>
+                <p style="line-height: 1.6; opacity: 0.9;">{{ item.info }}</p>
+            </div>
+            {% else %}
+            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+                <p style="opacity: 0.5; font-style: italic;">No description available.</p>
+            </div>
+            {% endif %}
+
+            {% if item.link %}
+            <a href="{{ item.link }}" target="_blank" class="btn btn-primary" style="display: inline-block; padding: 12px 30px; font-size: 1.1rem;">
+                Visit Website <i class="fas fa-external-link-alt" style="margin-left: 10px;"></i>
+            </a>
+            {% endif %}
+
+            <div style="margin-top: 40px; border-top: 1px solid var(--glass-border); padding-top: 20px; display: flex; gap: 15px;">
+                 <a href="{{ url_for('main.toggle_item', item_id=item.id) }}" class="btn" style="background: rgba(255,255,255,0.1);">
+                    {% if item.status == 'In Wishlist' %}Mark as Completed{% else %}Mark as Active{% endif %}
+                 </a>
+                 <a href="{{ url_for('main.delete_item', item_id=item.id) }}" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;" onclick="return confirm('Delete this item?');">
+                    Delete Item
+                 </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

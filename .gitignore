@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# Flask
+instance/
+.webassets-cache
+
+# Database
+*.db
+*.sqlite3
+wishlist.db
+
+# VS Code
+.vscode/
+
+# Project specific
+_legacy/
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
