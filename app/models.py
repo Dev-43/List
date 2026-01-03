@@ -28,8 +28,8 @@ class User(db.Model, UserMixin):
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    image_url = db.Column(db.String(500)) # New: Thumbnail
+    name = db.Column(db.String(100), nullable=False)
+    type = db.Column(db.String(20), default='general') # 'watch', 'read', 'general'
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     items = db.relationship('Item', backref='category', lazy=True, cascade="all, delete-orphan")
 
@@ -39,11 +39,18 @@ class Category(db.Model):
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    status = db.Column(db.String(20), default='In Wishlist') # In Wishlist, Purchased, etc.
+    status = db.Column(db.String(50), default='Future Read/Watch') 
     date_added = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     info = db.Column(db.Text)
-    link = db.Column(db.String(500)) # Increased length for long URLs
-    image_url = db.Column(db.String(500)) # New: Cover Image
+    link = db.Column(db.String(500)) 
+    image_url = db.Column(db.String(500)) 
+    
+    # Rich Data
+    director = db.Column(db.String(100))
+    year = db.Column(db.String(20))
+    sequel_prequel = db.Column(db.String(200)) # "Next in series"
+    type = db.Column(db.String(50)) # Movie, Book, etc.
+
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
 
     def __repr__(self):

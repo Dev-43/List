@@ -4,62 +4,104 @@
 <div class="glass-card" style="margin-top: 40px; padding: 40px;">
     
     <div style="margin-bottom: 20px;">
-        <a href="{{ url_for('main.index') }}" class="btn list-btn" style="display: inline-flex; align-items: center; gap: 10px;">
-            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        <a href="{{ url_for('main.view_list', category_id=item.category_id) if item.category_id else url_for('main.index') }}" class="btn list-btn" style="display: inline-flex; align-items: center; gap: 10px;">
+            <i class="fas fa-arrow-left"></i> Back to List
         </a>
     </div>
 
-    <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+    <!-- Glassmorphism Card -->
+    <div class="glass-panel" style="display: flex; flex-wrap: wrap; gap: 40px; padding: 40px; min-height: 60vh;">
         
-        <!-- Image Section -->
+        <!-- Image Section (Only if exists) -->
         {% if item.image_url %}
-        <div style="flex: 1; min-width: 300px;">
-            <img src="{{ item.image_url }}" alt="{{ item.name }}" style="width: 100%; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-        </div>
-        {% else %}
-        <div style="flex: 1; min-width: 300px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border-radius: 16px; min-height: 300px;">
-            <i class="fas fa-image" style="font-size: 4rem; opacity: 0.3;"></i>
+        <div style="flex: 1; min-width: 300px; max-width: 400px;">
+            <div style="position: relative; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <img src="{{ item.image_url }}" alt="{{ item.name }}" style="width: 100%; height: auto; display: block;">
+            </div>
         </div>
         {% endif %}
 
         <!-- Info Section -->
         <div style="flex: 2; min-width: 300px;">
-            <h1 style="font-size: 2.5rem; margin-bottom: 20px; color: white;">{{ item.name }}</h1>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <h1 style="font-size: 2.5rem; margin-bottom: 10px; color: white;">{{ item.name }}</h1>
+                {% if not item.year and not item.director and not item.image_url %}
+                <a href="{{ url_for('main.enhance_item', item_id=item.id) }}" class="btn btn-primary" title="Unleash Magic">
+                    <i class="fas fa-magic"></i> Fetch Info
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Rich Data Header -->
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.95rem; opacity: 0.8; margin-bottom: 25px;">
+                {% if item.year %}
+                <span><i class="far fa-calendar-alt"></i> {{ item.year }}</span>
+                {% endif %}
+                {% if item.director %}
+                <span><i class="fas fa-video"></i> {{ item.director }}</span>
+                {% endif %}
+                {% if item.type %}
+                <span><i class="fas fa-tag"></i> {{ item.type }}</span>
+                {% endif %}
+                 <span style="opacity: 0.5;">Added: {{ item.date_added.strftime('%b %d, %Y') }}</span>
+            </div>
             
-            <div style="margin-bottom: 20px;">
-                <span class="item-status-{{ item.status }}" style="padding: 5px 15px; border-radius: 20px; background: rgba(255,255,255,0.1);">
-                    {{ item.status }}
-                </span>
-                <span style="margin-left: 10px; opacity: 0.6; font-size: 0.9rem;">
-                    Added on {{ item.date_added.strftime('%Y-%m-%d') }}
-                </span>
+            {% if item.sequel_prequel %}
+            <div style="margin-bottom: 20px; font-size: 0.9rem; background: rgba(255,255,255,0.05); padding: 5px 15px; border-radius: 20px; display: inline-block;">
+                <i class="fas fa-forward"></i> Next in series: {{ item.sequel_prequel }}
             </div>
+             {% endif %}
 
-            {% if item.info %}
-            <div style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
-                <h3 style="margin-bottom: 10px; opacity: 0.8;">Description</h3>
-                <p style="line-height: 1.6; opacity: 0.9;">{{ item.info }}</p>
-            </div>
-            {% else %}
-            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
-                <p style="opacity: 0.5; font-style: italic;">No description available.</p>
-            </div>
-            {% endif %}
+            <!-- Advanced Status & Edit Form -->
+             <form action="{{ url_for('main.update_item_details', item_id=item.id) }}" method="POST" style="background: rgba(0,0,0,0.2); padding: 25px; border-radius: 16px; margin-bottom: 30px;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; opacity: 0.7;">Status</label>
+                    <select name="status" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
+                        {% set statuses = [] %}
+                        {% if item.category.type == 'watch' %}
+                            {% set statuses = ['Future Watch', 'Watching', 'Hold', 'Completed', 'Dropped'] %}
+                        {% elif item.category.type == 'read' %}
+                            {% set statuses = ['Future Read', 'Reading', 'Hold', 'Completed', 'Dropped'] %}
+                        {% else %}
+                             {% set statuses = ['Pending', 'In Progress', 'Completed', 'Hold'] %}
+                        {% endif %}
+                        
+                        {% for s in statuses %}
+                        <option value="{{ s }}" {% if item.status == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                        <!-- Fallback to keep current status if logic changes -->
+                        {% if item.status not in statuses %}
+                             <option value="{{ item.status }}" selected>{{ item.status }}</option>
+                        {% endif %}
+                    </select>
+                </div>
 
-            {% if item.link %}
-            <a href="{{ item.link }}" target="_blank" class="btn btn-primary" style="display: inline-block; padding: 12px 30px; font-size: 1.1rem;">
-                Visit Website <i class="fas fa-external-link-alt" style="margin-left: 10px;"></i>
-            </a>
-            {% endif %}
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; opacity: 0.7;">Description / Notes</label>
+                    <textarea name="info" rows="4" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; resize: vertical;">{{ item.info or '' }}</textarea>
+                </div>
 
-            <div style="margin-top: 40px; border-top: 1px solid var(--glass-border); padding-top: 20px; display: flex; gap: 15px;">
-                 <a href="{{ url_for('main.toggle_item', item_id=item.id) }}" class="btn" style="background: rgba(255,255,255,0.1);">
-                    {% if item.status == 'In Wishlist' %}Mark as Completed{% else %}Mark as Active{% endif %}
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; opacity: 0.7;">Link</label>
+                    <div style="display: flex; gap: 10px;">
+                         <input type="text" name="link" value="{{ item.link or '' }}" placeholder="https://..." style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
+                         {% if item.link %}
+                         <a href="{{ item.link }}" target="_blank" class="btn" style="background: rgba(255,255,255,0.1); display: flex; align-items: center;"><i class="fas fa-external-link-alt"></i></a>
+                         {% endif %}
+                    </div>
+                </div>
+
+                <div style="text-align: right;">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+
+            <div style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px; display: flex; justify-content: flex-end;">
+                 <a href="{{ url_for('main.delete_item', item_id=item.id) }}" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; font-size: 0.9rem;" onclick="return confirm('Delete this item?');">
+                    <i class="fas fa-trash"></i> Delete Item
                  </a>
-                 <a href="{{ url_for('main.delete_item', item_id=item.id) }}" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;" onclick="return confirm('Delete this item?');">
-                    Delete Item
-                 </a>
             </div>
+
 
         </div>
     </div>

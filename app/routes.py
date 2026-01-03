@@ -18,27 +18,64 @@ main = Blueprint('main', __name__)
 
 import sys
 
+def extract_wiki_infobox(soup):
+    """
+    Attempts to extract Director, Year, and Pre/Sequel from Wikipedia Infobox.
+    """
+    data = {'director': None, 'year': None, 'sequel_prequel': None}
+    try:
+        infobox = soup.find('table', class_='infobox')
+        if not infobox:
+            return data
+            
+        rows = infobox.find_all('tr')
+        for row in rows:
+            header = row.find('th')
+            if not header:
+                continue
+            header_text = header.get_text().lower()
+            cell = row.find('td')
+            if not cell:
+                continue
+            
+            # Director
+            if 'directed by' in header_text:
+                data['director'] = cell.get_text(strip=True)
+            
+            # Release Date / Year
+            if 'release date' in header_text or 'published' in header_text:
+                # Try to find a year YYYY
+                text = cell.get_text(strip=True)
+                year_match = re.search(r'\d{4}', text)
+                if year_match:
+                    data['year'] = year_match.group(0)
+            
+            # Sequel / Prequel / Followed by
+            if 'followed by' in header_text or 'preceded by' in header_text:
+                data['sequel_prequel'] = cell.get_text(strip=True)
+                
+    except Exception as e:
+        print(f"DEBUG: Infobox Parse Error: {e}", file=sys.stderr)
+        
+    return data
+
 def fetch_meta_data(query):
     """
-    Smart Search:
-    1. If query is a URL, fetch it.
-    2. If not, Google Search it -> get first URL -> fetch it.
-    Returns: {name, info, link, image_url}
+    Smart Search with Rich Data:
+    Returns: {name, info, link, image_url, director, year, sequel_prequel}
     """
     query = query.strip()
     target_url = query
     print(f"DEBUG: Processing query: {query}", file=sys.stderr)
     
-    # 1. Determine URL
+    # 1. Determine URL (Same as before)
     if not re.match(r'^https?://', query):
         try:
             print("DEBUG: Searching Google...", file=sys.stderr)
-            # 'stop' argument is deprecated in some versions, using num_results or num
-            # verify library version behavior. simpler to use a loop.
             results = []
             for j in search(query, num_results=1, sleep_interval=1, lang="en"):
                 results.append(j)
-                break # Just need one
+                break 
             
             if results:
                 target_url = results[0]
@@ -76,55 +113,55 @@ def fetch_meta_data(query):
     # 2. Fetch URL
     try:
         print(f"DEBUG: Fetching {target_url}...", file=sys.stderr)
-        # Use a real browser user agent to avoid 403s
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5'
+             # ... other headers
         }
         response = requests.get(target_url, headers=headers, timeout=10)
-        response.raise_for_status() # Raise error for bad status codes
+        response.raise_for_status() 
         
-        soup = BeautifulSoup(response.content, 'html.parser') # lxml can be strict, html.parser is looser
+        soup = BeautifulSoup(response.content, 'html.parser')
         
-        # 3. Extract Data
-        # Title
+        # 3. Extract Data (Existing)
         og_title = soup.find("meta", property="og:title")
         title = og_title["content"] if og_title else soup.title.string if soup.title else query
         
-        # Description
         og_desc = soup.find("meta", property="og:description")
         if not og_desc:
             og_desc = soup.find("meta", attrs={"name": "description"})
         description = og_desc["content"] if og_desc else ""
         
-        # Image
         og_image = soup.find("meta", property="og:image")
         image_url = og_image["content"] if og_image else None
         
-        # Fallback for image: Find first relevant image
         if not image_url:
-            # Try to find a substantial image (not an icon)
             images = soup.find_all('img')
             for img in images:
                 src = img.get('src')
                 if src and src.startswith('http') and 'logo' not in src.lower() and 'icon' not in src.lower():
-                     # Basic heuristic check (width/height attributes if available?)
-                     # Just take the first valid-looking one
                      image_url = src
                      break
+        
+        # 4. Extract Rich Data (Wikipedia Specific)
+        rich_data = {'director': None, 'year': None, 'sequel_prequel': None}
+        if 'wikipedia.org' in target_url:
+            rich_data = extract_wiki_infobox(soup)
+            print(f"DEBUG: Extracted Wiki Data: {rich_data}", file=sys.stderr)
 
         print(f"DEBUG: Scraped - Title: {title}, Image: {bool(image_url)}", file=sys.stderr)
 
         return {
             'name': str(title).strip()[:100], 
-            'info': str(description).strip()[:500], # Limit length
+            'info': str(description).strip()[:500], 
             'link': target_url,
-            'image_url': image_url
+            'image_url': image_url,
+            'director': rich_data['director'],
+            'year': rich_data['year'],
+            'sequel_prequel': rich_data['sequel_prequel']
         }
     except Exception as e:
         print(f"DEBUG: Fetch/Parse Error: {e}", file=sys.stderr)
-        return {'name': query, 'info': '', 'link': target_url, 'image_url': None}
+        return {'name': query, 'info': '', 'link': target_url, 'image_url': None, 'director':None, 'year':None, 'sequel_prequel':None}
 
 
 @main.route('/')
@@ -278,12 +315,20 @@ def reset_password(token):
 @login_required
 def add_category():
     name = request.form.get('name')
+    cat_type = request.form.get('type', 'general')
     if name:
-        # Optional: Add random background image for category?
-        category = Category(name=name, owner=current_user)
+        category = Category(name=name, type=cat_type, owner=current_user)
         db.session.add(category)
         db.session.commit()
     return redirect(url_for('main.index'))
+
+@main.route('/list/<int:category_id>')
+@login_required
+def view_list(category_id):
+    category = Category.query.get_or_404(category_id)
+    if category.owner != current_user:
+        return "Unauthorized", 403
+    return render_template('list_view.html', category=category)
 
 @main.route('/category/delete/<int:category_id>')
 @login_required
@@ -302,27 +347,63 @@ def add_item(category_id):
     if category.owner != current_user:
         return "Unauthorized", 403
         
-    name_input = request.form.get('name') # Could be query now
-    # link = request.form.get('link') # Not needed if we auto-fetch, or could be override
-    # info = request.form.get('info') # Not needed if we auto-fetch
-    
+    name_input = request.form.get('name')
+
     if name_input:
-        # --- Smart Search Logic ---
-        # Fetch metadata based on name_input (Query or URL)
-        meta = fetch_meta_data(name_input)
-        
+        # Simple Fast Add
         item = Item(
-            name=meta['name'], 
-            link=meta['link'], 
-            info=meta['info'], 
-            image_url=meta['image_url'],
-            category_id=category.id
+            name=name_input, 
+            category_id=category.id,
+            status='Future Read/Watch'
         )
         db.session.add(item)
         db.session.commit()
-        flash(f"Added: {meta['name']}", 'success')
-        
     return redirect(url_for('main.index'))
+
+@main.route('/item/enhance/<int:item_id>')
+@login_required
+def enhance_item(item_id):
+    item = Item.query.get_or_404(item_id)
+    if item.category.owner != current_user:
+        return "Unauthorized", 403
+    
+    # Smart Search Logic
+    try:
+        meta = fetch_meta_data(item.name)
+        if meta.get('image_url') or meta.get('info'):
+            item.image_url = meta.get('image_url')
+            item.info = meta.get('info')
+            item.link = meta.get('link')
+            
+            # Rich Data
+            if meta.get('director'): item.director = meta['director'][:100]
+            if meta.get('year'): item.year = meta['year'][:20]
+            if meta.get('sequel_prequel'): item.sequel_prequel = meta['sequel_prequel'][:200]
+            
+            db.session.commit()
+            flash(f"Magic performed on: {item.name}", 'success')
+        else:
+             flash(f"Could not find details for {item.name}", 'warning')
+    except Exception as e:
+        flash(f"Enhancement failed: {str(e)}", 'danger')
+
+    return redirect(request.referrer or url_for('main.index'))
+
+@main.route('/item/update_details/<int:item_id>', methods=['POST'])
+@login_required
+def update_item_details(item_id):
+    item = Item.query.get_or_404(item_id)
+    if item.category.owner != current_user:
+        return "Unauthorized", 403
+        
+    # Manual Update
+    item.info = request.form.get('info')
+    item.link = request.form.get('link')
+    item.status = request.form.get('status')
+    
+    db.session.commit()
+    flash('Details updated successfully!', 'success')
+    return redirect(url_for('main.view_item', item_id=item.id))
 
 @main.route('/item/delete/<int:item_id>')
 @login_required

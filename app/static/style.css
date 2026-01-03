@@ -227,9 +227,13 @@ input:focus, textarea:focus {
     background: rgba(255,255,255,0.02);
 }
 
-.item-status-In.Wishlist { color: #f1c40f; }
-.item-status-Pending { color: #f1c40f; } /* Keep for legacy */
-.item-status-Completed { color: #2ecc71; text-decoration: line-through; opacity: 0.6; }
+/* Status Badges */
+.item-status-Future.Read.Watch { color: #f1c40f; } /* Yellow */
+.item-status-Watching.Reading { color: #3498db; } /* Blue */
+.item-status-Hold { color: #e67e22; } /* Orange */
+.item-status-Drop { color: #e74c3c; opacity: 0.6; } /* Red */
+.item-status-Completed { color: #2ecc71; text-decoration: line-through; opacity: 0.6; } /* Green */
+.item-status-In.Wishlist { color: #f1c40f; } /* Legacy support */
 
 .action-btn {
     background: none;
