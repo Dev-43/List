@@ -18,58 +18,57 @@ main = Blueprint('main', __name__)
 
 import sys
 
-def extract_wiki_infobox(soup):
-    """
-    Attempts to extract Director, Year, and Pre/Sequel from Wikipedia Infobox.
-    """
+def extract_wiki_infobox(soup, category_type='general'):
+    """Extracts Director, Year, and Sequel info from Wikipedia Infobox."""
     data = {'director': None, 'year': None, 'sequel_prequel': None}
-    try:
-        infobox = soup.find('table', class_='infobox')
-        if not infobox:
-            return data
-            
-        rows = infobox.find_all('tr')
-        for row in rows:
-            header = row.find('th')
-            if not header:
-                continue
-            header_text = header.get_text().lower()
-            cell = row.find('td')
-            if not cell:
-                continue
-            
-            # Director
-            if 'directed by' in header_text:
-                data['director'] = cell.get_text(strip=True)
-            
-            # Release Date / Year
-            if 'release date' in header_text or 'published' in header_text:
-                # Try to find a year YYYY
-                text = cell.get_text(strip=True)
-                year_match = re.search(r'\d{4}', text)
-                if year_match:
-                    data['year'] = year_match.group(0)
-            
-            # Sequel / Prequel / Followed by
-            if 'followed by' in header_text or 'preceded by' in header_text:
-                data['sequel_prequel'] = cell.get_text(strip=True)
-                
-    except Exception as e:
-        print(f"DEBUG: Infobox Parse Error: {e}", file=sys.stderr)
+    
+    infobox = soup.find('table', class_='infobox')
+    if not infobox:
+        return data
+
+    rows = infobox.find_all('tr')
+    for row in rows:
+        header = row.find('th')
+        if not header:
+            continue
+        header_text = header.get_text(strip=True).lower()
         
+        # 1. Director / Author
+        if category_type == 'read':
+             if any(keyword in header_text for keyword in ['author', 'writer', 'created by']):
+                data['director'] = row.find('td').get_text(strip=True) # Storing Author in director column for now
+        else:
+            if any(keyword in header_text for keyword in ['directed by', 'director', 'created by']):
+                data['director'] = row.find('td').get_text(strip=True)
+
+        # 2. Year (Release Date or Publication Date)
+        if any(keyword in header_text for keyword in ['release date', 'published', 'publication date']):
+             # Extract just the year if possible
+             cell_text = row.find('td').get_text(strip=True)
+             match = re.search(r'\d{4}', cell_text)
+             if match:
+                 data['year'] = match.group(0)
+        
+        # 3. Sequel / Prequel
+        if any(keyword in header_text for keyword in ['followed by', 'preceded by', 'next']):
+             data['sequel_prequel'] = row.find('td').get_text(strip=True)
+
+    print(f"DEBUG: Extracted Wiki Data: {data}", file=sys.stderr)
     return data
 
-def fetch_meta_data(query):
-    """
-    Smart Search with Rich Data:
-    Returns: {name, info, link, image_url, director, year, sequel_prequel}
-    """
+def fetch_meta_data(query, category_type='general'):
     query = query.strip()
-    target_url = query
-    print(f"DEBUG: Processing query: {query}", file=sys.stderr)
+    original_query = query
     
-    # 1. Determine URL (Same as before)
-    if not re.match(r'^https?://', query):
+    # Context logic removed per user request - Search exact query
+    # if not re.match(r'^https?://', query):
+    #    query = f"{query} wikipedia" # Optional: minimalist context if needed, but for now exact.
+
+    target_url = original_query # Default to query if fail
+    print(f"DEBUG: Processing query: {query} (Type: {category_type})", file=sys.stderr)
+    
+    # 1. Determine URL
+    if not re.match(r'^https?://', original_query):
         try:
             print("DEBUG: Searching Google...", file=sys.stderr)
             results = []
@@ -145,7 +144,7 @@ def fetch_meta_data(query):
         # 4. Extract Rich Data (Wikipedia Specific)
         rich_data = {'director': None, 'year': None, 'sequel_prequel': None}
         if 'wikipedia.org' in target_url:
-            rich_data = extract_wiki_infobox(soup)
+            rich_data = extract_wiki_infobox(soup, category_type=category_type)
             print(f"DEBUG: Extracted Wiki Data: {rich_data}", file=sys.stderr)
 
         print(f"DEBUG: Scraped - Title: {title}, Image: {bool(image_url)}", file=sys.stderr)
@@ -351,10 +350,14 @@ def add_item(category_id):
 
     if name_input:
         # Simple Fast Add
+        status = 'Pending'
+        if category.type == 'watch': status = 'Plan to Watch'
+        elif category.type == 'read': status = 'Plan to Read'
+
         item = Item(
             name=name_input, 
             category_id=category.id,
-            status='Future Read/Watch'
+            status=status
         )
         db.session.add(item)
         db.session.commit()
@@ -369,16 +372,17 @@ def enhance_item(item_id):
     
     # Smart Search Logic
     try:
-        meta = fetch_meta_data(item.name)
-        if meta.get('image_url') or meta.get('info'):
-            item.image_url = meta.get('image_url')
-            item.info = meta.get('info')
-            item.link = meta.get('link')
+        data = fetch_meta_data(item.name, category_type=item.category.type)
+        if data.get('info') or data.get('image_url'):
+            item.name = data['name']
+            item.image_url = data.get('image_url')
+            item.info = data['info']
+            item.link = data['link']
             
             # Rich Data
-            if meta.get('director'): item.director = meta['director'][:100]
-            if meta.get('year'): item.year = meta['year'][:20]
-            if meta.get('sequel_prequel'): item.sequel_prequel = meta['sequel_prequel'][:200]
+            if data.get('director'): item.director = data['director'][:100]
+            if data.get('year'): item.year = data['year'][:20]
+            if data.get('sequel_prequel'): item.sequel_prequel = data['sequel_prequel'][:200]
             
             db.session.commit()
             flash(f"Magic performed on: {item.name}", 'success')
@@ -404,6 +408,22 @@ def update_item_details(item_id):
     db.session.commit()
     flash('Details updated successfully!', 'success')
     return redirect(url_for('main.view_item', item_id=item.id))
+
+@main.route('/item/update_status/<int:item_id>', methods=['POST'])
+@login_required
+def update_item_status(item_id):
+    item = Item.query.get_or_404(item_id)
+    if item.category.owner != current_user:
+        return "Unauthorized", 403
+        
+    new_status = request.form.get('status')
+    if new_status:
+        item.status = new_status
+        db.session.commit()
+        # No flash needed for quick inline update, or maybe a subtle one?
+        # flash('Status updated', 'success') 
+        
+    return redirect(request.referrer or url_for('main.index'))
 
 @main.route('/item/delete/<int:item_id>')
 @login_required

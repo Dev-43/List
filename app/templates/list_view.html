@@ -11,12 +11,13 @@
                 <div style="font-size: 0.9rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;">
                     {% if category.type == 'watch' %}<i class="fas fa-film"></i> Watch List
                     {% elif category.type == 'read' %}<i class="fas fa-book"></i> Read List
-                    {% else %}<i class="fas fa-list"></i> General List{% endif %}
+                    {% elif category.type == 'todo' %}<i class="fas fa-check-square"></i> To-Do List
+                    {% else %}<i class="fas fa-pen-to-square"></i> Custom List{% endif %}
                 </div>
             </div>
         </div>
         
-        <a href="{{ url_for('main.delete_category', category_id=category.id) }}" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; font-size: 0.9rem;" onclick="return confirm('Delete entire list?');">
+        <a href="#" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; font-size: 0.9rem;" onclick="return showDeleteModal('{{ url_for("main.delete_category", category_id=category.id) }}', 'Delete this entire list?');">
             <i class="fas fa-trash"></i> Delete List
         </a>
     </div>
@@ -35,25 +36,36 @@
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="background: rgba(255,255,255,0.05); text-align: left;">
+                    <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 40px;">#</th>
                     <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 60px;"></th>
                     <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7;">Name</th>
                     <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 120px;">Status</th>
                     <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 120px;">Added</th>
-                    <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 100px; text-align: right;">Actions</th>
+                    <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 80px; text-align: right;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in category.items %}
                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <!-- Sr No -->
+                    <td style="padding: 10px 20px; opacity: 0.5;">{{ loop.index }}</td>
+
                     <!-- Thumbnail -->
                     <td style="padding: 10px 20px;">
                          <div style="width: 40px; height: 40px; border-radius: 6px; background: rgba(255,255,255,0.1); overflow: hidden; position: relative;">
                             {% if item.image_url %}
                                 <img src="{{ item.image_url }}" style="width: 100%; height: 100%; object-fit: cover;">
                             {% else %}
+                                {% if category.type != 'todo' %}
                                 <a href="{{ url_for('main.enhance_item', item_id=item.id) }}" title="Fetch Info" style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; opacity: 0.3;">
                                     <i class="fas fa-magic" style="font-size: 0.8rem;"></i>
                                 </a>
+                                {% else %}
+                                <!-- No Magic for To-Do -->
+                                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; opacity: 0.1;">
+                                    <i class="fas fa-check-square" style="font-size: 0.8rem;"></i>
+                                </div>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </td>
@@ -63,18 +75,34 @@
                         <a href="{{ url_for('main.view_item', item_id=item.id) }}" style="color: inherit; text-decoration: none; font-weight: 500; font-size: 1.05rem;">
                             {{ item.name }}
                         </a>
-                        <!-- Subtitle info -->
+                        <!-- Subtitle info (Hide for To-Do) -->
+                        {% if category.type != 'todo' %}
                         <div style="font-size: 0.8rem; opacity: 0.6; margin-top: 3px;">
                             {% if item.year %}{{ item.year }} &bull; {% endif %}
                             {% if item.director %}{{ item.director }}{% endif %}
                         </div>
+                        {% endif %}
                     </td>
                     
-                    <!-- Status -->
+                    <!-- Status (Inline Edit) -->
                     <td style="padding: 10px 20px;">
-                        <span class="item-status-{{ item.status|replace(' ', '.')|replace('/', '.') }}" style="font-size: 0.9rem;">
-                            {{ item.status }}
-                        </span>
+                        <form action="{{ url_for('main.update_item_status', item_id=item.id) }}" method="POST" style="margin: 0;">
+                             <select name="status" onchange="this.form.submit()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.85rem; cursor: pointer; outline: none; width: 100%; max-width: 140px;">
+                                {% if category.type == 'watch' %}
+                                    {% set options = ['Plan to Watch', 'Watching', 'On Hold', 'Completed', 'Dropped'] %}
+                                {% elif category.type == 'read' %}
+                                    {% set options = ['Plan to Read', 'Reading', 'On Hold', 'Completed', 'Dropped'] %}
+                                {% elif category.type == 'todo' %}
+                                    {% set options = ['Pending', 'In Progress', 'Done', 'Blocked'] %}
+                                {% else %}
+                                     {% set options = ['Pending', 'In Progress', 'Completed', 'Archived'] %}
+                                {% endif %}
+                                
+                                {% for opt in options %}
+                                    <option value="{{ opt }}" {% if item.status == opt %}selected{% endif %} style="background: #2c3e50;">{{ opt }}</option>
+                                {% endfor %}
+                             </select>
+                        </form>
                     </td>
 
                     <!-- Added On -->
@@ -85,12 +113,7 @@
                     <!-- Actions -->
                     <td style="padding: 10px 20px; text-align: right;">
                         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                            {% if not item.image_url %}
-                            <a href="{{ url_for('main.enhance_item', item_id=item.id) }}" class="action-btn" style="color: #3498db;" title="Fetch Details">
-                                <i class="fas fa-magic"></i>
-                            </a>
-                            {% endif %}
-                            <a href="{{ url_for('main.delete_item', item_id=item.id) }}" class="action-btn delete-btn" title="Delete">
+                            <a href="#" class="action-btn delete-btn" title="Delete" onclick="return showDeleteModal('{{ url_for("main.delete_item", item_id=item.id) }}', 'Delete this item?');">
                                 <i class="fas fa-times"></i>
                             </a>
                         </div>

@@ -1,108 +1,183 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="glass-card" style="margin-top: 40px; padding: 40px;">
+<div class="glass-panel" style="max-width: 1100px; margin: 0 auto; padding: 40px;">
     
-    <div style="margin-bottom: 20px;">
-        <a href="{{ url_for('main.view_list', category_id=item.category_id) if item.category_id else url_for('main.index') }}" class="btn list-btn" style="display: inline-flex; align-items: center; gap: 10px;">
-            <i class="fas fa-arrow-left"></i> Back to List
+    <!-- Top Nav / Back -->
+    <div style="margin-bottom: 30px;">
+        <a href="{{ url_for('main.view_list', category_id=item.category.id) }}" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem;">
+            <i class="fas fa-arrow-left"></i> Back to {{ item.category.name }}
         </a>
     </div>
 
-    <!-- Glassmorphism Card -->
-    <div class="glass-panel" style="display: flex; flex-wrap: wrap; gap: 40px; padding: 40px; min-height: 60vh;">
+    <!-- Main Layout: Grid -->
+    {% set show_image = item.category.type in ['read', 'watch'] %}
+    <div style="display: grid; grid-template-columns: {% if show_image %}300px 1fr{% else %}1fr{% endif %}; gap: 40px;">
         
-        <!-- Image Section (Only if exists) -->
-        {% if item.image_url %}
-        <div style="flex: 1; min-width: 300px; max-width: 400px;">
-            <div style="position: relative; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                <img src="{{ item.image_url }}" alt="{{ item.name }}" style="width: 100%; height: auto; display: block;">
+        <!-- LEFT COLUMN: Post/Image & Actions (Only for Read/Watch) -->
+        {% if show_image %}
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Poster Wrapper -->
+            <div style="width: 100%; aspect-ratio: 2/3; background: rgba(0,0,0,0.3); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;">
+                {% if item.image_url %}
+                    <img src="{{ item.image_url }}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
+                {% else %}
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; color: rgba(255,255,255,0.2);">
+                        <i class="fas fa-image" style="font-size: 3rem; margin-bottom: 10px;"></i>
+                        <span>No Image</span>
+                    </div>
+                {% endif %}
             </div>
+
+            <!-- Status Card -->
+            <div class="glass-panel" style="padding: 15px; text-align: center; background: rgba(255,255,255,0.05);">
+                <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 5px;">Current Status</div>
+                <div style="font-size: 1.2rem; font-weight: 600; color: #3498db;">{{ item.status }}</div>
+            </div>
+
+            <!-- Action Buttons (Vertical) -->
+             <button onclick="toggleEdit()" class="btn" style="background: rgba(255,255,255,0.1); width: 100%; margin-bottom: 10px;">
+                <i class="fas fa-edit"></i> Edit Details
+             </button>
+             <a href="#" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; text-align: center; width: 100%; box-sizing: border-box;" onclick="return showDeleteModal('{{ url_for("main.delete_item", item_id=item.id) }}', 'Delete this item?');">
+                <i class="fas fa-trash"></i> Delete
+             </a>
         </div>
         {% endif %}
 
-        <!-- Info Section -->
-        <div style="flex: 2; min-width: 300px;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <h1 style="font-size: 2.5rem; margin-bottom: 10px; color: white;">{{ item.name }}</h1>
-                {% if not item.year and not item.director and not item.image_url %}
-                <a href="{{ url_for('main.enhance_item', item_id=item.id) }}" class="btn btn-primary" title="Unleash Magic">
-                    <i class="fas fa-magic"></i> Fetch Info
+        <!-- RIGHT COLUMN: Metadata & Info -->
+        <div>
+            <!-- Header -->
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start;">
+                <h1 style="font-size: 3.5rem; line-height: 1.1; margin: 0 0 15px 0; font-weight: 700; color: white;">{{ item.name }}</h1>
+                
+                {% if not show_image %}
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="toggleEdit()" class="btn" style="background: rgba(255,255,255,0.1);">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                     <a href="#" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;" onclick="return showDeleteModal('{{ url_for("main.delete_item", item_id=item.id) }}', 'Delete this item?');">
+                        <i class="fas fa-trash"></i>
+                     </a>
+                </div>
+                {% endif %}
+            </div>
+
+             <!-- Magic Wand (Conditional) moved here -->
+            <div style="margin-bottom: 20px;">
+                {% if item.category.type != 'todo' and not item.info %}
+                <a href="{{ url_for('main.enhance_item', item_id=item.id) }}" style="display: inline-block; font-size: 0.9rem; color: #f1c40f; text-decoration: none; border-bottom: 1px dashed #f1c40f;">
+                    <i class="fas fa-magic"></i> Auto-fetch info
                 </a>
                 {% endif %}
             </div>
 
-            <!-- Rich Data Header -->
-            <div style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.95rem; opacity: 0.8; margin-bottom: 25px;">
+            <!-- Metadata Row -->
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px;">
                 {% if item.year %}
-                <span><i class="far fa-calendar-alt"></i> {{ item.year }}</span>
+                <span style="background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; font-size: 0.9rem;">
+                    {{ item.year }}
+                </span>
                 {% endif %}
+                
                 {% if item.director %}
-                <span><i class="fas fa-video"></i> {{ item.director }}</span>
+                <span style="background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; font-size: 0.9rem;">
+                     {% if item.category.type == 'read' %}Authored by {% endif %}{{ item.director }}
+                </span>
                 {% endif %}
-                {% if item.type %}
-                <span><i class="fas fa-tag"></i> {{ item.type }}</span>
+
+                {% if item.sequel_prequel %}
+                <span style="background: rgba(52, 152, 219, 0.2); color: #3498db; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem;">
+                    <i class="fas fa-link"></i> {{ item.sequel_prequel }}
+                </span>
                 {% endif %}
-                 <span style="opacity: 0.5;">Added: {{ item.date_added.strftime('%b %d, %Y') }}</span>
+                
+                {% if not show_image and item.status %}
+                 <span style="background: #3498db; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;">
+                    {{ item.status }}
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Description / Info -->
+            <div style="margin-bottom: 40px;">
+                <h3 style="font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Synopsis / Details</h3>
+                <div style="line-height: 1.6; font-size: 1.1rem; opacity: 0.9; color: rgba(255,255,255,0.9);">
+                    {{ item.info or 'No description available yet. Add one below!' }}
+                </div>
+            </div>
+
+            <!-- Editor Section (Start Hidden) -->
+            <div id="edit-section" class="glass-panel" style="padding: 25px; background: rgba(0,0,0,0.2); display: none;">
+                <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 1.1rem;"><i class="fas fa-edit"></i> Edit Details</h3>
+                <form action="{{ url_for('main.update_item_details', item_id=item.id) }}" method="POST">
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; opacity: 0.7; font-size: 0.9rem;">Status</label>
+                            <select name="status" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
+                                {% if item.category.type == 'watch' %}
+                                    {% set statuses = ['Plan to Watch', 'Watching', 'On Hold', 'Completed', 'Dropped'] %}
+                                {% elif item.category.type == 'read' %}
+                                    {% set statuses = ['Plan to Read', 'Reading', 'On Hold', 'Completed', 'Dropped'] %}
+                                {% elif item.category.type == 'todo' %}
+                                    {% set statuses = ['Pending', 'In Progress', 'Done', 'Blocked'] %}
+                                {% else %}
+                                     {% set statuses = ['Pending', 'In Progress', 'Completed', 'Archived'] %}
+                                {% endif %}
+                                {% for s in statuses %}
+                                <option value="{{ s }}" {% if item.status == s %}selected{% endif %} style="background: #2c3e50;">{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; opacity: 0.7; font-size: 0.9rem;">Description</label>
+                        <textarea name="info" rows="5" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; field-sizing: content;">{{ item.info or '' }}</textarea>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; opacity: 0.7; font-size: 0.9rem;">Links (One per line)</label>
+                        <textarea name="link" rows="3" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">{{ item.link or '' }}</textarea>
+                    </div>
+
+                    <div style="text-align: right;">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
             </div>
             
-            {% if item.sequel_prequel %}
-            <div style="margin-bottom: 20px; font-size: 0.9rem; background: rgba(255,255,255,0.05); padding: 5px 15px; border-radius: 20px; display: inline-block;">
-                <i class="fas fa-forward"></i> Next in series: {{ item.sequel_prequel }}
-            </div>
-             {% endif %}
-
-            <!-- Advanced Status & Edit Form -->
-             <form action="{{ url_for('main.update_item_details', item_id=item.id) }}" method="POST" style="background: rgba(0,0,0,0.2); padding: 25px; border-radius: 16px; margin-bottom: 30px;">
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; opacity: 0.7;">Status</label>
-                    <select name="status" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
-                        {% set statuses = [] %}
-                        {% if item.category.type == 'watch' %}
-                            {% set statuses = ['Future Watch', 'Watching', 'Hold', 'Completed', 'Dropped'] %}
-                        {% elif item.category.type == 'read' %}
-                            {% set statuses = ['Future Read', 'Reading', 'Hold', 'Completed', 'Dropped'] %}
-                        {% else %}
-                             {% set statuses = ['Pending', 'In Progress', 'Completed', 'Hold'] %}
+            <!-- External Links (Rendered) -->
+            <div style="margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px;">
+                {% if item.link %}
+                    {% for link in item.link.split('\n') %}
+                        {% if link.strip() %}
+                        <a href="{{ link.strip() }}" target="_blank" class="btn btn-primary" style="background: white; color: #2c3e50; font-weight: 600;">
+                            <i class="fas fa-external-link-alt"></i> Visit Link {{ loop.index if loop.length > 1 else '' }}
+                        </a>
                         {% endif %}
-                        
-                        {% for s in statuses %}
-                        <option value="{{ s }}" {% if item.status == s %}selected{% endif %}>{{ s }}</option>
-                        {% endfor %}
-                        <!-- Fallback to keep current status if logic changes -->
-                        {% if item.status not in statuses %}
-                             <option value="{{ item.status }}" selected>{{ item.status }}</option>
-                        {% endif %}
-                    </select>
-                </div>
-
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; opacity: 0.7;">Description / Notes</label>
-                    <textarea name="info" rows="4" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; resize: vertical;">{{ item.info or '' }}</textarea>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; opacity: 0.7;">Link</label>
-                    <div style="display: flex; gap: 10px;">
-                         <input type="text" name="link" value="{{ item.link or '' }}" placeholder="https://..." style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
-                         {% if item.link %}
-                         <a href="{{ item.link }}" target="_blank" class="btn" style="background: rgba(255,255,255,0.1); display: flex; align-items: center;"><i class="fas fa-external-link-alt"></i></a>
-                         {% endif %}
-                    </div>
-                </div>
-
-                <div style="text-align: right;">
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </div>
-            </form>
-
-            <div style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px; display: flex; justify-content: flex-end;">
-                 <a href="{{ url_for('main.delete_item', item_id=item.id) }}" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; font-size: 0.9rem;" onclick="return confirm('Delete this item?');">
-                    <i class="fas fa-trash"></i> Delete Item
-                 </a>
+                    {% endfor %}
+                {% elif item.category.type != 'todo' %}
+                    <div style="opacity: 0.5; font-style: italic;">No links added yet.</div>
+                {% endif %}
             </div>
 
-
+            <!-- Edit Toggle Script -->
+            <script>
+            function toggleEdit() {
+                var x = document.getElementById("edit-section");
+                if (x.style.display === "none") {
+                    x.style.display = "block";
+                    // Scroll to it
+                    x.scrollIntoView({behavior: "smooth"});
+                } else {
+                    x.style.display = "none";
+                }
+            }
+            </script>
         </div>
     </div>
 </div>
