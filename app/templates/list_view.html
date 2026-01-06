@@ -56,14 +56,18 @@
                             {% if item.image_url %}
                                 <img src="{{ item.image_url }}" style="width: 100%; height: 100%; object-fit: cover;">
                             {% else %}
-                                {% if category.type != 'todo' %}
+                                {% if category.type not in ['todo', 'custom'] %}
                                 <a href="{{ url_for('main.enhance_item', item_id=item.id) }}" title="Fetch Info" style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; opacity: 0.3;">
                                     <i class="fas fa-magic" style="font-size: 0.8rem;"></i>
                                 </a>
                                 {% else %}
-                                <!-- No Magic for To-Do -->
+                                <!-- No Magic for To-Do or Custom -->
                                 <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; opacity: 0.1;">
-                                    <i class="fas fa-check-square" style="font-size: 0.8rem;"></i>
+                                    {% if category.type == 'todo' %}
+                                        <i class="fas fa-check-square" style="font-size: 0.8rem;"></i>
+                                    {% else %}
+                                        <i class="fas fa-pen-to-square" style="font-size: 0.8rem;"></i>
+                                    {% endif %}
                                 </div>
                                 {% endif %}
                             {% endif %}
@@ -75,8 +79,8 @@
                         <a href="{{ url_for('main.view_item', item_id=item.id) }}" style="color: inherit; text-decoration: none; font-weight: 500; font-size: 1.05rem;">
                             {{ item.name }}
                         </a>
-                        <!-- Subtitle info (Hide for To-Do) -->
-                        {% if category.type != 'todo' %}
+                        <!-- Subtitle info (Hide for To-Do/Custom) -->
+                        {% if category.type not in ['todo', 'custom'] %}
                         <div style="font-size: 0.8rem; opacity: 0.6; margin-top: 3px;">
                             {% if item.year %}{{ item.year }} &bull; {% endif %}
                             {% if item.director %}{{ item.director }}{% endif %}

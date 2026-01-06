@@ -65,7 +65,7 @@
 
              <!-- Magic Wand (Conditional) moved here -->
             <div style="margin-bottom: 20px;">
-                {% if item.category.type != 'todo' and not item.info %}
+                {% if item.category.type not in ['todo', 'custom'] and not item.info %}
                 <a href="{{ url_for('main.enhance_item', item_id=item.id) }}" style="display: inline-block; font-size: 0.9rem; color: #f1c40f; text-decoration: none; border-bottom: 1px dashed #f1c40f;">
                     <i class="fas fa-magic"></i> Auto-fetch info
                 </a>

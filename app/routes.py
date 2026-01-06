@@ -56,16 +56,55 @@ def extract_wiki_infobox(soup, category_type='general'):
     print(f"DEBUG: Extracted Wiki Data: {data}", file=sys.stderr)
     return data
 
-def fetch_meta_data(query, category_type='general'):
+def fetch_meta_data(query, category_type='general', category_name=''):
     query = query.strip()
     original_query = query
     
-    # Context logic removed per user request - Search exact query
-    # if not re.match(r'^https?://', query):
-    #    query = f"{query} wikipedia" # Optional: minimalist context if needed, but for now exact.
-
-    target_url = original_query # Default to query if fail
-    print(f"DEBUG: Processing query: {query} (Type: {category_type})", file=sys.stderr)
+    # Context logic reinstated per user request
+    context_keywords = ""
+    cat_name_lower = category_name.lower()
+    
+    if category_type == 'read':
+        if 'manga' in cat_name_lower:
+            context_keywords = " manga wikipedia"
+        elif 'comic' in cat_name_lower:
+             context_keywords = " comic wikipedia"
+        else:
+            context_keywords = " novel book wikipedia"
+            
+    elif category_type == 'watch':
+        if 'anime' in cat_name_lower:
+            context_keywords = " anime wikipedia"
+        elif 'series' in cat_name_lower or 'show' in cat_name_lower:
+             context_keywords = " tv series wikipedia"
+        else:
+            context_keywords = " film movie wikipedia"
+        
+    print(f"DEBUGGING: Query='{query}', Type='{category_type}', List='{category_name}'", file=sys.stderr)
+    
+    # Only append if not a URL and keywords not already present (basic check)
+    if not re.match(r'^https?://', query):
+        clean_check = query.lower()
+        should_append = True
+        
+        # Check if context already exists in query to avoid duplication
+        # Simple check: if any word from context is in query, skip? 
+        # Better: Check specific main keywords
+        if category_type == 'read':
+             if 'book' in clean_check or 'novel' in clean_check or 'manga' in clean_check or 'comic' in clean_check:
+                 should_append = False
+        elif category_type == 'watch':
+             if 'movie' in clean_check or 'film' in clean_check or 'series' in clean_check or 'anime' in clean_check:
+                 should_append = False
+                 
+        if should_append and context_keywords:
+             print(f"DEBUG: Appending context: '{context_keywords}'", file=sys.stderr)
+             query = f"{query}{context_keywords}"
+        else:
+             print(f"DEBUG: Context skipped (already present or none)", file=sys.stderr)
+    
+    target_url = None
+    print(f"DEBUG: Final Processing query: {query}", file=sys.stderr)
     
     # 1. Determine URL
     if not re.match(r'^https?://', original_query):
@@ -97,49 +136,45 @@ def fetch_meta_data(query, category_type='general'):
                     print(f"DEBUG: Found URL via DuckDuckGo: {target_url}", file=sys.stderr)
                 else:
                     print(f"DEBUG: DDG parsing failed (Len: {len(ddg_resp.content)}). Trying Wikipedia...", file=sys.stderr)
-                    # Fallback 3: Wikipedia Guess
-                    wiki_url = f"https://en.wikipedia.org/wiki/{query.title().replace(' ', '_')}"
+                    # Fallback 3: Wikipedia Guess (Use CLEAN name, not the messy query)
+                    wiki_url = f"https://en.wikipedia.org/wiki/{original_query.title().replace(' ', '_')}"
                     wiki_resp = requests.get(wiki_url, headers=ddg_headers, timeout=5)
                     if wiki_resp.status_code == 200:
-                         target_url = wiki_url
-                         print(f"DEBUG: Found URL via Wikipedia Fallback: {target_url}", file=sys.stderr)
+                        target_url = wiki_url
+                        print(f"DEBUG: Guessed Wikipedia URL: {target_url}", file=sys.stderr)
                     else:
-                         return {'name': query, 'info': 'No results found', 'link': None, 'image_url': None}
-            except Exception as ddg_e:
-                print(f"DEBUG: All Search methods failed: {ddg_e}", file=sys.stderr)
-                return {'name': query, 'info': 'Search failed', 'link': None, 'image_url': None}
+                        raise Exception("All search methods failed")
 
-    # 2. Fetch URL
+            except Exception as e:
+                print(f"DEBUG: Search failed entirely: {e}", file=sys.stderr)
+                return {'name': original_query, 'info': '', 'link': '', 'image_url': None, 'director':None, 'year':None, 'sequel_prequel':None}
+    
+    if not target_url:
+        return {'name': original_query, 'info': '', 'link': '', 'image_url': None, 'director':None, 'year':None, 'sequel_prequel':None}
+        
+    # 2. Scrape Meta
     try:
-        print(f"DEBUG: Fetching {target_url}...", file=sys.stderr)
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-             # ... other headers
-        }
-        response = requests.get(target_url, headers=headers, timeout=10)
-        response.raise_for_status() 
+        print(f"DEBUG: Scrape URL: {target_url}", file=sys.stderr)
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        resp = requests.get(target_url, headers=headers, timeout=10)
+        soup = BeautifulSoup(resp.content, 'html.parser')
+
+        # 3. Extract Basic Data
+        title = soup.title.string if soup.title else original_query
+        # Clean Title (Remove " - Wikipedia", " - IMDb", etc.)
+        title = re.sub(r' - Wikipedia.*', '', title)
+        title = re.sub(r' - IMDb.*', '', title)
         
-        soup = BeautifulSoup(response.content, 'html.parser')
+        description = ""
+        meta_desc = soup.find('meta', attrs={'name': 'description'}) or soup.find('meta', attrs={'property': 'og:description'})
+        if meta_desc:
+            description = meta_desc.get('content', '')
         
-        # 3. Extract Data (Existing)
-        og_title = soup.find("meta", property="og:title")
-        title = og_title["content"] if og_title else soup.title.string if soup.title else query
-        
-        og_desc = soup.find("meta", property="og:description")
-        if not og_desc:
-            og_desc = soup.find("meta", attrs={"name": "description"})
-        description = og_desc["content"] if og_desc else ""
-        
-        og_image = soup.find("meta", property="og:image")
-        image_url = og_image["content"] if og_image else None
-        
-        if not image_url:
-            images = soup.find_all('img')
-            for img in images:
-                src = img.get('src')
-                if src and src.startswith('http') and 'logo' not in src.lower() and 'icon' not in src.lower():
-                     image_url = src
-                     break
+        # Image
+        image_url = None
+        og_image = soup.find('meta', attrs={'property': 'og:image'})
+        if og_image:
+             image_url = og_image.get('content')
         
         # 4. Extract Rich Data (Wikipedia Specific)
         rich_data = {'director': None, 'year': None, 'sequel_prequel': None}
@@ -160,14 +195,17 @@ def fetch_meta_data(query, category_type='general'):
         }
     except Exception as e:
         print(f"DEBUG: Fetch/Parse Error: {e}", file=sys.stderr)
-        return {'name': query, 'info': '', 'link': target_url, 'image_url': None, 'director':None, 'year':None, 'sequel_prequel':None}
+        # CRITICAL FIX: Return original_query on error, NOT the modified 'query'
+        return {'name': original_query, 'info': '', 'link': target_url, 'image_url': None, 'director':None, 'year':None, 'sequel_prequel':None}
 
 
 @main.route('/')
-@login_required
 def index():
-    categories = Category.query.filter_by(user_id=current_user.id).all()
-    return render_template('dashboard.html', categories=categories)
+    if current_user.is_authenticated:
+        categories = Category.query.filter_by(owner=current_user).all()
+        # Ensure default is handled in template or here if empty
+        return render_template('dashboard.html', categories=categories)
+    return render_template('index.html')
 
 # --- Authentication ---
 
@@ -372,7 +410,7 @@ def enhance_item(item_id):
     
     # Smart Search Logic
     try:
-        data = fetch_meta_data(item.name, category_type=item.category.type)
+        data = fetch_meta_data(item.name, category_type=item.category.type, category_name=item.category.name)
         if data.get('info') or data.get('image_url'):
             item.name = data['name']
             item.image_url = data.get('image_url')
