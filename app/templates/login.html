@@ -4,7 +4,7 @@
 <div class="auth-container glass-card">
     <h2 style="margin-bottom: 20px;">Welcome Back</h2>
     
-    <form method="POST" action="{{ url_for('main.login') }}">
+    <form method="POST" action="{{ url_for('auth.login') }}">
         <div class="form-group">
             <label for="email">Email Address</label>
             <input type="email" name="email" id="email" required placeholder="Enter your email">
@@ -16,7 +16,7 @@
         </div>
 
         <div style="text-align: right; margin-bottom: 20px;">
-            <a href="{{ url_for('main.forgot_password') }}" style="color: var(--accent-color); font-size: 0.8rem; text-decoration: none;">Forgot Password?</a>
+            <a href="{{ url_for('auth.forgot_password') }}" style="color: var(--accent-color); font-size: 0.8rem; text-decoration: none;">Forgot Password?</a>
         </div>
         
         <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
@@ -24,13 +24,13 @@
 
     <div class="social-login">
         <p style="margin-bottom: 10px; font-size: 0.9rem; opacity: 0.7;">Or continue with</p>
-        <a href="{{ url_for('main.login_google') }}" class="btn google-btn">
+        <a href="{{ url_for('auth.login_google') }}" class="btn google-btn">
             <i class="fab fa-google"></i> Login with Google
         </a>
     </div>
 
     <div style="margin-top: 20px; font-size: 0.9rem;">
-        Don't have an account? <a href="{{ url_for('main.register') }}" style="color: var(--accent-color);">Sign Up</a>
+        Don't have an account? <a href="{{ url_for('auth.register') }}" style="color: var(--accent-color);">Sign Up</a>
     </div>
 </div>
 {% endblock %}
