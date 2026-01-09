@@ -1,29 +1,26 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-
 # Virtual Environment
 venv/
 env/
 .env
 
-# Flask
-instance/
-.webassets-cache
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 
 # Database
+instance/
 *.db
+*.sqlite
 *.sqlite3
-wishlist.db
 
-# VS Code
-.vscode/
-
-# Project specific
-_legacy/
-logs/
-
-# OS
+# OS Metadata
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# IDE settings
+.vscode/
+.idea/

@@ -1,31 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div style="max-width: 1000px; margin: 0 auto;">
+<div class="container mt-4">
     <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px;">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <a href="{{ url_for('main.index') }}" style="color: rgba(255,255,255,0.5); font-size: 1.5rem;"><i class="fas fa-arrow-left"></i></a>
+    <div class="flex-between mb-4">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <a href="{{ url_for('main.index') }}" class="action-btn" style="margin-left: 0; font-size: 1.5rem;"><i class="fas fa-arrow-left"></i></a>
             <div>
-                <h1 style="font-size: 2rem; margin: 0; color: white;">{{ category.name }}</h1>
-                <div style="font-size: 0.9rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;">
-                    {% if category.type == 'watch' %}<i class="fas fa-film"></i> Watch List
-                    {% elif category.type == 'read' %}<i class="fas fa-book"></i> Read List
-                    {% elif category.type == 'todo' %}<i class="fas fa-check-square"></i> To-Do List
-                    {% else %}<i class="fas fa-pen-to-square"></i> Custom List{% endif %}
+                <h1 style="font-size: 2.5rem; margin: 0; font-weight: 700; background: linear-gradient(to right, #fff, #a5a5a5); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{{ category.name }}</h1>
+                <div style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px;">
+                    {% if category.type == 'watch' %}<i class="fas fa-film" style="color: #3498db;"></i> Watch List
+                    {% elif category.type == 'read' %}<i class="fas fa-book" style="color: #9b59b6;"></i> Read List
+                    {% elif category.type == 'todo' %}<i class="fas fa-check-square" style="color: #2ecc71;"></i> To-Do List
+                    {% else %}<i class="fas fa-pen-to-square" style="color: #f1c40f;"></i> Custom List{% endif %}
                 </div>
             </div>
         </div>
         
-        <a href="#" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; font-size: 0.9rem;" onclick="return showDeleteModal('{{ url_for("main.delete_category", category_id=category.id) }}', 'Delete this entire list?');">
+        <a href="#" class="btn btn-outline" style="color: #e74c3c; border-color: rgba(231, 76, 60, 0.4);" onclick="return showDeleteModal('{{ url_for("main.delete_category", category_id=category.id) }}', 'Delete this entire list?');">
             <i class="fas fa-trash"></i> Delete List
         </a>
     </div>
 
     <!-- Add Item (Simple) -->
-    <div class="glass-panel" style="margin-bottom: 30px; padding: 15px;">
-        <form action="{{ url_for('main.add_item', category_id=category.id) }}" method="POST" style="display: flex; gap: 10px;">
-            <input type="text" name="name" placeholder="Add to {{ category.name }}..." required style="flex: 1; background: transparent; border: none; font-size: 1.1rem; color: white;">
+    <div class="glass-panel" style="margin-bottom: 30px; padding: 20px;">
+        <form action="{{ url_for('main.add_item', category_id=category.id) }}" method="POST" style="display: flex; gap: 15px;">
+            <input type="text" name="name" placeholder="Add to {{ category.name }}..." required style="flex: 1;">
             <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add</button>
         </form>
     </div>
@@ -33,55 +33,47 @@
     <!-- Tabular List -->
     {% if category.items %}
     <div class="glass-panel" style="padding: 0; overflow: hidden;">
-        <table style="width: 100%; border-collapse: collapse;">
+        <table class="glass-table">
             <thead>
-                <tr style="background: rgba(255,255,255,0.05); text-align: left;">
-                    <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 40px;">#</th>
-                    <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 60px;"></th>
-                    <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7;">Name</th>
-                    <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 120px;">Status</th>
-                    <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 120px;">Added</th>
-                    <th style="padding: 15px 20px; font-weight: 500; opacity: 0.7; width: 80px; text-align: right;">Actions</th>
+                <tr>
+                    <th style="width: 50px;">#</th>
+                    <th style="width: 70px;"></th>
+                    <th>Name</th>
+                    <th style="width: 160px;">Status</th>
+                    <th style="width: 140px;">Added</th>
+                    <th style="width: 80px; text-align: right;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in category.items %}
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <tr class="glass-row">
                     <!-- Sr No -->
-                    <td style="padding: 10px 20px; opacity: 0.5;">{{ loop.index }}</td>
+                    <td style="color: var(--text-muted);">{{ loop.index }}</td>
 
                     <!-- Thumbnail -->
-                    <td style="padding: 10px 20px;">
-                         <div style="width: 40px; height: 40px; border-radius: 6px; background: rgba(255,255,255,0.1); overflow: hidden; position: relative;">
+                    <td>
+                         <div style="width: 45px; height: 45px; border-radius: 8px; background: rgba(255,255,255,0.05); overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
                             {% if item.image_url %}
                                 <img src="{{ item.image_url }}" style="width: 100%; height: 100%; object-fit: cover;">
                             {% else %}
-                                {% if category.type not in ['todo', 'custom'] %}
-                                <a href="{{ url_for('main.enhance_item', item_id=item.id) }}" title="Fetch Info" style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; opacity: 0.3;">
-                                    <i class="fas fa-magic" style="font-size: 0.8rem;"></i>
-                                </a>
-                                {% else %}
-                                <!-- No Magic for To-Do or Custom -->
-                                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; opacity: 0.1;">
-                                    {% if category.type == 'todo' %}
-                                        <i class="fas fa-check-square" style="font-size: 0.8rem;"></i>
-                                    {% else %}
-                                        <i class="fas fa-pen-to-square" style="font-size: 0.8rem;"></i>
-                                    {% endif %}
+                                <div style="color: var(--text-muted); opacity: 0.3;">
+                                    {% if category.type == 'watch' %}<i class="fas fa-film"></i>
+                                    {% elif category.type == 'read' %}<i class="fas fa-book"></i>
+                                    {% elif category.type == 'todo' %}<i class="fas fa-check-square"></i>
+                                    {% else %}<i class="fas fa-pen-to-square"></i>{% endif %}
                                 </div>
-                                {% endif %}
                             {% endif %}
                         </div>
                     </td>
                     
                     <!-- Name -->
-                    <td style="padding: 10px 20px;">
-                        <a href="{{ url_for('main.view_item', item_id=item.id) }}" style="color: inherit; text-decoration: none; font-weight: 500; font-size: 1.05rem;">
+                    <td>
+                        <a href="{{ url_for('main.view_item', item_id=item.id) }}" style="color: inherit; text-decoration: none; font-weight: 600; font-size: 1.05rem; display: block;">
                             {{ item.name }}
                         </a>
                         <!-- Subtitle info (Hide for To-Do/Custom) -->
                         {% if category.type not in ['todo', 'custom'] %}
-                        <div style="font-size: 0.8rem; opacity: 0.6; margin-top: 3px;">
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
                             {% if item.year %}{{ item.year }} &bull; {% endif %}
                             {% if item.director %}{{ item.director }}{% endif %}
                         </div>
@@ -89,9 +81,9 @@
                     </td>
                     
                     <!-- Status (Inline Edit) -->
-                    <td style="padding: 10px 20px;">
+                    <td>
                         <form action="{{ url_for('main.update_item_status', item_id=item.id) }}" method="POST" style="margin: 0;">
-                             <select name="status" onchange="this.form.submit()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.85rem; cursor: pointer; outline: none; width: 100%; max-width: 140px;">
+                             <select name="status" onchange="this.form.submit()" class="status-select item-status-{{ item.status|replace(' ', '') }}" style="width: 100%;">
                                 {% if category.type == 'watch' %}
                                     {% set options = ['Plan to Watch', 'Watching', 'On Hold', 'Completed', 'Dropped'] %}
                                 {% elif category.type == 'read' %}
@@ -103,24 +95,22 @@
                                 {% endif %}
                                 
                                 {% for opt in options %}
-                                    <option value="{{ opt }}" {% if item.status == opt %}selected{% endif %} style="background: #2c3e50;">{{ opt }}</option>
+                                    <option value="{{ opt }}" {% if item.status == opt %}selected{% endif %} style="background: #2c3e50; color: white;">{{ opt }}</option>
                                 {% endfor %}
                              </select>
                         </form>
                     </td>
 
                     <!-- Added On -->
-                    <td style="padding: 10px 20px; font-size: 0.85rem; opacity: 0.6;">
+                    <td style="color: var(--text-muted); font-size: 0.9rem;">
                         {{ item.date_added.strftime('%b %d, %Y') }}
                     </td>
                     
                     <!-- Actions -->
-                    <td style="padding: 10px 20px; text-align: right;">
-                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                            <a href="#" class="action-btn delete-btn" title="Delete" onclick="return showDeleteModal('{{ url_for("main.delete_item", item_id=item.id) }}', 'Delete this item?');">
-                                <i class="fas fa-times"></i>
-                            </a>
-                        </div>
+                    <td style="text-align: right;">
+                        <a href="#" class="action-btn delete-btn" title="Delete" onclick="return showDeleteModal('{{ url_for("main.delete_item", item_id=item.id) }}', 'Delete this item?');">
+                            <i class="fas fa-trash"></i>
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -128,9 +118,9 @@
         </table>
     </div>
     {% else %}
-    <div style="text-align: center; padding: 50px; opacity: 0.5;">
-        <i class="fas fa-folder-open" style="font-size: 3rem; margin-bottom: 20px;"></i>
-        <p>This list is empty. Add something above!</p>
+    <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+        <i class="fas fa-box-open" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.5;"></i>
+        <p style="font-size: 1.2rem;">This list is empty. Add something above!</p>
     </div>
     {% endif %}
 

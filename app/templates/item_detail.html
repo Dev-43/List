@@ -1,183 +1,179 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="glass-panel" style="max-width: 1100px; margin: 0 auto; padding: 40px;">
+<div class="container mt-4">
     
     <!-- Top Nav / Back -->
-    <div style="margin-bottom: 30px;">
-        <a href="{{ url_for('main.view_list', category_id=item.category.id) }}" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem;">
+    <div class="mb-4">
+        <a href="{{ url_for('main.view_list', category_id=item.category.id) }}" class="action-btn" style="margin-left: 0; font-size: 1rem; color: var(--text-muted);">
             <i class="fas fa-arrow-left"></i> Back to {{ item.category.name }}
         </a>
     </div>
 
-    <!-- Main Layout: Grid -->
-    {% set show_image = item.category.type in ['read', 'watch'] %}
-    <div style="display: grid; grid-template-columns: {% if show_image %}300px 1fr{% else %}1fr{% endif %}; gap: 40px;">
-        
-        <!-- LEFT COLUMN: Post/Image & Actions (Only for Read/Watch) -->
-        {% if show_image %}
-        <div style="display: flex; flex-direction: column; gap: 20px;">
-            <!-- Poster Wrapper -->
-            <div style="width: 100%; aspect-ratio: 2/3; background: rgba(0,0,0,0.3); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;">
-                {% if item.image_url %}
-                    <img src="{{ item.image_url }}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
-                {% else %}
-                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; color: rgba(255,255,255,0.2);">
-                        <i class="fas fa-image" style="font-size: 3rem; margin-bottom: 10px;"></i>
-                        <span>No Image</span>
-                    </div>
-                {% endif %}
-            </div>
-
-            <!-- Status Card -->
-            <div class="glass-panel" style="padding: 15px; text-align: center; background: rgba(255,255,255,0.05);">
-                <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 5px;">Current Status</div>
-                <div style="font-size: 1.2rem; font-weight: 600; color: #3498db;">{{ item.status }}</div>
-            </div>
-
-            <!-- Action Buttons (Vertical) -->
-             <button onclick="toggleEdit()" class="btn" style="background: rgba(255,255,255,0.1); width: 100%; margin-bottom: 10px;">
-                <i class="fas fa-edit"></i> Edit Details
-             </button>
-             <a href="#" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; text-align: center; width: 100%; box-sizing: border-box;" onclick="return showDeleteModal('{{ url_for("main.delete_item", item_id=item.id) }}', 'Delete this item?');">
-                <i class="fas fa-trash"></i> Delete
-             </a>
-        </div>
-        {% endif %}
-
-        <!-- RIGHT COLUMN: Metadata & Info -->
-        <div>
-            <!-- Header -->
-            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start;">
-                <h1 style="font-size: 3.5rem; line-height: 1.1; margin: 0 0 15px 0; font-weight: 700; color: white;">{{ item.name }}</h1>
-                
-                {% if not show_image %}
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="toggleEdit()" class="btn" style="background: rgba(255,255,255,0.1);">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                     <a href="#" class="btn" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;" onclick="return showDeleteModal('{{ url_for("main.delete_item", item_id=item.id) }}', 'Delete this item?');">
-                        <i class="fas fa-trash"></i>
-                     </a>
-                </div>
-                {% endif %}
-            </div>
-
-             <!-- Magic Wand (Conditional) moved here -->
-            <div style="margin-bottom: 20px;">
-                {% if item.category.type not in ['todo', 'custom'] and not item.info %}
-                <a href="{{ url_for('main.enhance_item', item_id=item.id) }}" style="display: inline-block; font-size: 0.9rem; color: #f1c40f; text-decoration: none; border-bottom: 1px dashed #f1c40f;">
-                    <i class="fas fa-magic"></i> Auto-fetch info
-                </a>
-                {% endif %}
-            </div>
-
-            <!-- Metadata Row -->
-            <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px;">
-                {% if item.year %}
-                <span style="background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; font-size: 0.9rem;">
-                    {{ item.year }}
-                </span>
-                {% endif %}
-                
-                {% if item.director %}
-                <span style="background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; font-size: 0.9rem;">
-                     {% if item.category.type == 'read' %}Authored by {% endif %}{{ item.director }}
-                </span>
-                {% endif %}
-
-                {% if item.sequel_prequel %}
-                <span style="background: rgba(52, 152, 219, 0.2); color: #3498db; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem;">
-                    <i class="fas fa-link"></i> {{ item.sequel_prequel }}
-                </span>
-                {% endif %}
-                
-                {% if not show_image and item.status %}
-                 <span style="background: #3498db; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;">
-                    {{ item.status }}
-                </span>
-                {% endif %}
-            </div>
-
-            <!-- Description / Info -->
-            <div style="margin-bottom: 40px;">
-                <h3 style="font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Synopsis / Details</h3>
-                <div style="line-height: 1.6; font-size: 1.1rem; opacity: 0.9; color: rgba(255,255,255,0.9);">
-                    {{ item.info or 'No description available yet. Add one below!' }}
-                </div>
-            </div>
-
-            <!-- Editor Section (Start Hidden) -->
-            <div id="edit-section" class="glass-panel" style="padding: 25px; background: rgba(0,0,0,0.2); display: none;">
-                <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 1.1rem;"><i class="fas fa-edit"></i> Edit Details</h3>
-                <form action="{{ url_for('main.update_item_details', item_id=item.id) }}" method="POST">
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 8px; opacity: 0.7; font-size: 0.9rem;">Status</label>
-                            <select name="status" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
-                                {% if item.category.type == 'watch' %}
-                                    {% set statuses = ['Plan to Watch', 'Watching', 'On Hold', 'Completed', 'Dropped'] %}
-                                {% elif item.category.type == 'read' %}
-                                    {% set statuses = ['Plan to Read', 'Reading', 'On Hold', 'Completed', 'Dropped'] %}
-                                {% elif item.category.type == 'todo' %}
-                                    {% set statuses = ['Pending', 'In Progress', 'Done', 'Blocked'] %}
-                                {% else %}
-                                     {% set statuses = ['Pending', 'In Progress', 'Completed', 'Archived'] %}
-                                {% endif %}
-                                {% for s in statuses %}
-                                <option value="{{ s }}" {% if item.status == s %}selected{% endif %} style="background: #2c3e50;">{{ s }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div>
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; opacity: 0.7; font-size: 0.9rem;">Description</label>
-                        <textarea name="info" rows="5" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; field-sizing: content;">{{ item.info or '' }}</textarea>
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; opacity: 0.7; font-size: 0.9rem;">Links (One per line)</label>
-                        <textarea name="link" rows="3" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">{{ item.link or '' }}</textarea>
-                    </div>
-
-                    <div style="text-align: right;">
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </div>
-                </form>
-            </div>
+    <div class="glass-panel">
+        <!-- Main Layout: Grid -->
+        {% set show_image = item.category.type in ['read', 'watch'] %}
+        <div style="display: grid; grid-template-columns: {% if show_image %}300px 1fr{% else %}1fr{% endif %}; gap: 40px;">
             
-            <!-- External Links (Rendered) -->
-            <div style="margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px;">
-                {% if item.link %}
-                    {% for link in item.link.split('\n') %}
-                        {% if link.strip() %}
-                        <a href="{{ link.strip() }}" target="_blank" class="btn btn-primary" style="background: white; color: #2c3e50; font-weight: 600;">
-                            <i class="fas fa-external-link-alt"></i> Visit Link {{ loop.index if loop.length > 1 else '' }}
-                        </a>
-                        {% endif %}
-                    {% endfor %}
-                {% elif item.category.type != 'todo' %}
-                    <div style="opacity: 0.5; font-style: italic;">No links added yet.</div>
-                {% endif %}
-            </div>
+            <!-- LEFT COLUMN: Post/Image & Actions (Only for Read/Watch) -->
+            {% if show_image %}
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Poster Wrapper -->
+                <div style="width: 100%; aspect-ratio: 2/3; background: rgba(0,0,0,0.3); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;">
+                    {% if item.image_url %}
+                        <img src="{{ item.image_url }}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; color: var(--text-muted); opacity: 0.3;">
+                            <i class="fas fa-image" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                            <span>No Image</span>
+                        </div>
+                    {% endif %}
+                </div>
 
-            <!-- Edit Toggle Script -->
-            <script>
-            function toggleEdit() {
-                var x = document.getElementById("edit-section");
-                if (x.style.display === "none") {
-                    x.style.display = "block";
-                    // Scroll to it
-                    x.scrollIntoView({behavior: "smooth"});
-                } else {
-                    x.style.display = "none";
+                <!-- Status Card -->
+                <div class="glass-panel" style="padding: 15px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);">
+                    <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 5px;">Current Status</div>
+                    <div style="font-size: 1.2rem; font-weight: 600; color: #fff;">{{ item.status }}</div>
+                </div>
+
+                <!-- Action Buttons (Vertical) -->
+                <div style="display: grid; gap: 10px;">
+                    <button onclick="toggleEdit()" class="btn btn-outline" style="width: 100%; justify-content: center;">
+                        <i class="fas fa-edit"></i> Edit Details
+                    </button>
+                    <a href="#" class="btn btn-outline" style="color: #e74c3c; border-color: rgba(231, 76, 60, 0.3); width: 100%; justify-content: center;" onclick="return showDeleteModal('{{ url_for("main.delete_item", item_id=item.id) }}', 'Delete this item?');">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- RIGHT COLUMN: Metadata & Info -->
+            <div>
+                <!-- Header -->
+                <div class="flex-between" style="margin-bottom: 25px; align-items: flex-start;">
+                    <h1 style="font-size: 3rem; line-height: 1.1; margin: 0; font-weight: 700; background: linear-gradient(to bottom right, #fff, #b3b3b3); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{{ item.name }}</h1>
+                    
+                    {% if not show_image %}
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="toggleEdit()" class="btn btn-outline">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                         <a href="#" class="btn btn-outline" style="color: #e74c3c; border-color: rgba(231, 76, 60, 0.3);" onclick="return showDeleteModal('{{ url_for("main.delete_item", item_id=item.id) }}', 'Delete this item?');">
+                            <i class="fas fa-trash"></i>
+                         </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Metadata Row -->
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px;">
+                    {% if item.year %}
+                    <span style="background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; color: var(--text-muted);">
+                        <i class="far fa-calendar-alt"></i> {{ item.year }}
+                    </span>
+                    {% endif %}
+                    
+                    {% if item.director %}
+                    <span style="background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; color: var(--text-muted);">
+                         {% if item.category.type == 'read' %}<i class="fas fa-pen-nib"></i> Authored by {% else %}<i class="fas fa-video"></i> Directed by {% endif %}{{ item.director }}
+                    </span>
+                    {% endif %}
+
+                    {% if item.sequel_prequel %}
+                    <span style="background: rgba(52, 152, 219, 0.15); color: #3498db; padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; border: 1px solid rgba(52, 152, 219, 0.3);">
+                        <i class="fas fa-link"></i> {{ item.sequel_prequel }}
+                    </span>
+                    {% endif %}
+                    
+                    {% if not show_image and item.status %}
+                     <span style="background: var(--primary-color); padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                        {{ item.status }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Description / Info -->
+                <div style="margin-bottom: 40px; padding: 20px; background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Synopsis / Details</h3>
+                    <div style="line-height: 1.8; font-size: 1.1rem; color: rgba(255,255,255,0.9);">
+                        {{ item.info or 'No description available yet.' }}
+                    </div>
+                </div>
+
+                <!-- External Links (Rendered) -->
+                <div style="margin-bottom: 30px; display: flex; flex-wrap: wrap; gap: 10px;">
+                    {% if item.link %}
+                        {% for link in item.link.split('\n') %}
+                            {% if link.strip() %}
+                            <a href="{{ link.strip() }}" target="_blank" class="btn btn-outline" style=" background: rgba(255,255,255,0.05); border-color: var(--glass-border);">
+                                <i class="fas fa-external-link-alt"></i> Visit Link {{ loop.index if loop.length > 1 else '' }}
+                            </a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- Editor Section (Start Hidden) -->
+                <div id="edit-section" class="glass-panel" style="padding: 30px; background: rgba(0,0,0,0.2); display: none; margin-top: 30px;">
+                    <div class="flex-between mb-4">
+                        <h3 style="margin: 0; font-size: 1.4rem;"><i class="fas fa-edit"></i> Edit Details</h3>
+                        <button onclick="toggleEdit()" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.9rem;"><i class="fas fa-times"></i></button>
+                    </div>
+                    
+                    <form action="{{ url_for('main.update_item_details', item_id=item.id) }}" method="POST">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select name="status">
+                                    {% if item.category.type == 'watch' %}
+                                        {% set statuses = ['Plan to Watch', 'Watching', 'On Hold', 'Completed', 'Dropped'] %}
+                                    {% elif item.category.type == 'read' %}
+                                        {% set statuses = ['Plan to Read', 'Reading', 'On Hold', 'Completed', 'Dropped'] %}
+                                    {% elif item.category.type == 'todo' %}
+                                        {% set statuses = ['Pending', 'In Progress', 'Done', 'Blocked'] %}
+                                    {% else %}
+                                         {% set statuses = ['Pending', 'In Progress', 'Completed', 'Archived'] %}
+                                    {% endif %}
+                                    {% for s in statuses %}
+                                    <option value="{{ s }}" {% if item.status == s %}selected{% endif %} style="background: #2c3e50;">{{ s }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <!-- Placeholder for other inputs if needed -->
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea name="info" rows="5" style="field-sizing: content;">{{ item.info or '' }}</textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Links (One per line)</label>
+                            <textarea name="link" rows="3">{{ item.link or '' }}</textarea>
+                        </div>
+
+                        <div style="text-align: right; margin-top: 20px;">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <script>
+                function toggleEdit() {
+                    var x = document.getElementById("edit-section");
+                    if (x.style.display === "none") {
+                        x.style.display = "block";
+                        // Scroll to it
+                        x.scrollIntoView({behavior: "smooth"});
+                    } else {
+                        x.style.display = "none";
+                    }
                 }
-            }
-            </script>
+                </script>
+            </div>
         </div>
     </div>
 </div>

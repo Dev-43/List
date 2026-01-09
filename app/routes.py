@@ -4,8 +4,7 @@ from app import db
 from app.models import User, Category, Item
 import sys
 
-# scraping imports
-from app.futurescope.metadata import fetch_meta_data
+
 
 main = Blueprint('main', __name__)
 
@@ -81,39 +80,9 @@ def add_item(category_id):
         )
         db.session.add(item)
         db.session.commit()
-    return redirect(url_for('main.index'))
+    return redirect(url_for('main.view_list', category_id=category.id))
 
-@main.route('/item/enhance/<int:item_id>')
-@login_required
-def enhance_item(item_id):
-    item = db.session.get(Item, item_id)
-    if not item:
-        return "Item not found", 404
-    if item.category.owner != current_user:
-        return "Unauthorized", 403
-    
-    # Smart Search Logic
-    try:
-        data = fetch_meta_data(item.name, category_type=item.category.type, category_name=item.category.name)
-        if data.get('info') or data.get('image_url'):
-            item.name = data['name']
-            item.image_url = data.get('image_url')
-            item.info = data['info']
-            item.link = data['link']
-            
-            # Rich Data
-            if data.get('director'): item.director = data['director'][:100]
-            if data.get('year'): item.year = data['year'][:20]
-            if data.get('sequel_prequel'): item.sequel_prequel = data['sequel_prequel'][:200]
-            
-            db.session.commit()
-            flash(f"Magic performed on: {item.name}", 'success')
-        else:
-             flash(f"Could not find details for {item.name}", 'warning')
-    except Exception as e:
-        flash(f"Enhancement failed: {str(e)}", 'danger')
 
-    return redirect(request.referrer or url_for('main.index'))
 
 @main.route('/item/update_details/<int:item_id>', methods=['POST'])
 @login_required
@@ -159,9 +128,10 @@ def delete_item(item_id):
         return "Item not found", 404
     if item.category.owner != current_user:
         return "Unauthorized", 403
+    category_id = item.category_id
     db.session.delete(item)
     db.session.commit()
-    return redirect(url_for('main.index'))
+    return redirect(url_for('main.view_list', category_id=category_id))
 
 @main.route('/item/toggle/<int:item_id>')
 @login_required
@@ -174,7 +144,7 @@ def toggle_item(item_id):
     
     item.status = 'Completed' if item.status != 'Completed' else 'In Wishlist'
     db.session.commit()
-    return redirect(url_for('main.index'))
+    return redirect(url_for('main.view_list', category_id=item.category_id))
 
 @main.route('/item/<int:item_id>')
 @login_required
